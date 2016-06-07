@@ -1,0 +1,248 @@
+turtles-own
+  [ sick?                ;; if true, the turtle is infectious
+    remaining-immunity   ;; how many weeks of immunity the turtle has left
+    sick-time
+    age
+    ;;vacuna
+    contacto
+    tapabocas]      ;; how long, in weeks, the turtle has been infectious
+
+
+globals
+  [ %infected            ;; what % of the population is infectious
+    %immune              ;; what % of the population is immune
+    immunity-duration    ;; how many weeks immunity lasts
+    turtle-shape
+    oportunidad_recuperarce
+    ;;lista
+    ;;lista2
+    ;;lista3
+    vacunado
+    variableinfectar
+    variableinfectar2
+    ]
+
+to setup    ;;                                          SETUP
+  clear-all
+  setup-constants
+  setup-turtles
+  update-global-variables
+  update-display
+  reset-ticks
+end
+
+
+to setup-constants ;;                                 SETUP-CONSTANTS
+  set immunity-duration 60
+  set turtle-shape "person"
+  set oportunidad_recuperarce 100
+  set vacunado vacunados * 0.5
+end
+
+
+to setup-turtles;;                                   SETUP-TURTLES
+  create-turtles poblacion
+    [ setxy random-xcor random-ycor
+      set sick-time 0
+      set remaining-immunity 0
+      set size 2  ;; easier to see
+      get-healthy ]
+    ask n-of infectados turtles
+    [ get-sick ]
+    ask n-of vacunados turtles
+    [ become-immune ]
+    ask n-of Infectados_con_tapabocas turtles
+    [ get-sick-tapabocas ]
+    ask n-of Infectados_evitan_contacto turtles
+    [ get-sick-contacto ]
+    ask n-of Infectados_evitan_contacto_con_tapabocas turtles
+    [ get-sick-tapabocas-contacto ]
+
+end
+
+
+to get-sick ;;                                   GET_SICK
+  set sick? true
+  set tapabocas false
+  set contacto false
+  set remaining-immunity 0
+end
+
+to get-sick-tapabocas ;;                          GET_SICK_TAPABOCAS
+  set sick? true
+  set tapabocas true
+  set contacto false
+  set remaining-immunity 0
+end
+to get-sick-contacto ;;                            get-sick-contacto
+  set sick? true
+  set contacto true
+  set tapabocas false
+  set remaining-immunity 0
+end
+to get-sick-tapabocas-contacto ;;                   get-sick-tapabocas-contacto
+  set sick? true
+  set tapabocas true
+  set contacto true
+  set remaining-immunity 0
+end
+
+to get-healthy ;;                                get-healthy
+  set sick? false
+  set contacto false
+  set tapabocas false
+  set remaining-immunity 0
+  set sick-time 0
+end
+
+to become-immune ;;                              become-immune
+  set sick? false
+  set contacto false
+  set tapabocas false
+  set sick-time 0
+  set remaining-immunity immunity-duration
+end
+
+
+to update-global-variables ;;                     update-global-variables
+  if count turtles > 0
+    [ set %infected (count turtles with [ sick? ] / count turtles) * 100
+      set %immune (count turtles with [ immune? ] / count turtles) * 100 ]
+end
+
+
+to update-display;;                                 update-display
+  ask turtles
+    [ if shape != turtle-shape [ set shape turtle-shape ]
+      set color ifelse-value sick? [ red ] [ ifelse-value immune? [ grey ] [ green ] ] ]
+    ask turtles with [tapabocas = true and sick? = true] [set color white]
+    ask turtles with [contacto = true and sick? = true] [set color orange]
+    ask turtles with [tapabocas = true and contacto = true and sick? = true] [set color  yellow]
+end
+
+
+to go  ;;                                                                           GO ----------------------------------
+  set variableinfectar random 100
+  set variableinfectar2 random 100
+  ask turtles [
+    move
+    sumar-tiempo
+    if sick? [ recover-or-die ]
+    if sick? [ infect ]
+  ]
+  update-global-variables
+  update-display
+  tick
+end
+
+;;to histo
+  ;;set lista count turtles with [ sick? ]
+  ;;set lista2 count turtles with [ immune? ]
+;;set lista3  count turtles with [ not sick? and not immune? ]
+ ;; dibujar-histo
+;;end
+
+;;to dibujar-histo
+ ;;histogram lista
+;;end
+
+to sumar-tiempo  ;;                                                sumar-tiempo
+   if immune? [ set remaining-immunity remaining-immunity - 1 ]
+  if sick? [ set sick-time sick-time + 1 ]
+end
+
+to move ;;                                                          move
+  rt random 100
+  lt random 100
+  fd 1
+end
+
+to recover-or-die ;;                                              recover-or-die
+  if sick-time > duracion_enfermedad
+   ;; [ ifelse random-float 100 < oportunidad_recuperarce
+      [ become-immune ]
+    ;;  [ die ] ]
+end
+
+;;to infect  ;; turtle procedure
+  ;; let nearby-uninfected (turtles-on neighbors)
+    ;; with [ not infected? and not cured? ]
+
+;ask turtles[set label "" set color green]
+;ask turtle 7 [
+;set color red
+;set label "Caller"
+
+;ask other (turtles with [distance myself <= 3 and abs( towards myself - heading) < 50 ])
+;[
+
+;set color yellow
+;]
+
+;ask other turtles [
+
+;;set label (Member? turtle 7 Other turtles  in-cone 3  100)
+;;]
+;;]
+
+to infect ;;                                                             infect
+
+if sick? and not contacto and not tapabocas  [
+      ask other turtles with [ distance myself <= 3 and not sick? and not immune?  ]    ;;  set seeding-place one-of neighbors with [not any? daisies-here]
+      [ if variableinfectar <= 20
+       [ if variableinfectar2 < 20 [get-sick-tapabocas-contacto ]
+         if 20 <= variableinfectar2 and variableinfectar2 < 55 [get-sick-tapabocas]
+         if 55 <= variableinfectar2 and variableinfectar2 < 65 [get-sick]
+         if 65 <= variableinfectar2 and variableinfectar2 <= 100 [get-sick-contacto]
+         ]
+      ]
+     ]
+
+if sick? and   tapabocas and not contacto [
+      ask other turtles with [distance myself <= 1 and not sick? and not immune?   ]   ;; ask link-neighbors [ explore new-color ]
+      [ if 20 <= variableinfectar and variableinfectar < 40
+       [if variableinfectar2 < 10 [get-sick ]
+         if 10 <= variableinfectar2 and variableinfectar2 < 45 [get-sick-contacto]
+         if 45 <= variableinfectar2 and variableinfectar2 < 65 [get-sick-tapabocas-contacto]   ;;;; enfermo 10 -contacto,35 -tapabocas 35 -contacto_tapavbocas 20
+         if 65 <= variableinfectar2 and variableinfectar2 <= 100 [get-sick-tapabocas]
+         ]
+      ]
+   ]
+
+if sick? and  contacto and  tapabocas   [
+      ask other turtles with [  distance myself <= 1 and not sick? and not immune?   ]
+       [ if 40 <= variableinfectar and variableinfectar < 49
+        [if variableinfectar2 < 35 [get-sick-contacto ]
+         if 35 <= variableinfectar2 and variableinfectar2 < 55 [get-sick-tapabocas-contacto]
+         if 55 <= variableinfectar2 and variableinfectar2 < 90 [get-sick-tapabocas]
+         if 90 <= variableinfectar2 and variableinfectar2 <= 100 [get-sick]
+         ]
+      ]
+     ]
+if sick? and  contacto and not tapabocas   [
+      ask other turtles with [  distance myself <= 3 and not sick? and not immune?  ]
+        [ if 85 <= variableinfectar and variableinfectar < 100
+          [if variableinfectar2 < 35 [get-sick-tapabocas ]
+         if 35 <= variableinfectar2 and variableinfectar2 < 45 [get-sick]
+         if 45 <= variableinfectar2 and variableinfectar2 < 65 [get-sick-tapabocas-contacto]
+         if 65 <= variableinfectar2 and variableinfectar2 <= 100 [get-sick-contacto]
+         ]
+      ]
+     ]
+end
+
+;to reproduce
+ ; if count turtles < 1 and random-float 100 < 1
+  ;  [ hatch 1
+   ;   [ set age 1
+     ;   lt 45 fd 1
+    ;,    get-healthy ] ]
+;end
+
+to-report immune?;;                    procedimiento con retorno
+  report remaining-immunity > 0
+end
+
+to startup
+  setup-constants
+end
